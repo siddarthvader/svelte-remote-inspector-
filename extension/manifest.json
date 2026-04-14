@@ -1,0 +1,28 @@
+{
+  "manifest_version": 3,
+  "name": "Remote Function Inspector",
+  "version": "0.1.0",
+  "description": "Capture request/response payloads for remote function calls in authorized environments.",
+  "permissions": ["storage"],
+  "host_permissions": ["<all_urls>"],
+  "background": {
+    "service_worker": "service_worker.js"
+  },
+  "action": {
+    "default_popup": "popup.html",
+    "default_title": "Remote Function Inspector"
+  },
+  "content_scripts": [
+    {
+      "matches": ["<all_urls>"],
+      "js": ["content.js"],
+      "run_at": "document_start"
+    }
+  ],
+  "web_accessible_resources": [
+    {
+      "resources": ["page-hook.js"],
+      "matches": ["<all_urls>"]
+    }
+  ]
+}
