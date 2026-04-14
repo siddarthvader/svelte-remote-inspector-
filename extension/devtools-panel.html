@@ -1,0 +1,296 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <title>Remote Inspector</title>
+    <style>
+      :root {
+        color-scheme: light dark;
+        --border: #d0d7de;
+        --muted: #6b7280;
+        --bg-soft: rgba(127, 127, 127, 0.08);
+        --bg-selected: rgba(59, 130, 246, 0.14);
+        --code-bg: rgba(127, 127, 127, 0.08);
+      }
+      * { box-sizing: border-box; }
+      body {
+        font-family: Inter, ui-sans-serif, system-ui, sans-serif;
+        margin: 0;
+        height: 100vh;
+        overflow: hidden;
+      }
+      .app {
+        display: grid;
+        grid-template-rows: auto 1fr;
+        height: 100vh;
+      }
+      .toolbar {
+        display: flex;
+        gap: 10px;
+        align-items: center;
+        padding: 10px 12px;
+        border-bottom: 1px solid var(--border);
+        flex-wrap: wrap;
+      }
+      .meta {
+        color: var(--muted);
+        font-size: 12px;
+      }
+      .toggles {
+        display: flex;
+        gap: 12px;
+        margin-left: auto;
+        flex-wrap: wrap;
+      }
+      .toggle {
+        display: inline-flex;
+        gap: 6px;
+        align-items: center;
+        font-size: 12px;
+        color: var(--muted);
+      }
+      .layout {
+        min-height: 0;
+        display: grid;
+        grid-template-columns: 58% 42%;
+      }
+      .sidebar {
+        border-right: 1px solid var(--border);
+        overflow: auto;
+        min-height: 0;
+      }
+      .details {
+        overflow: auto;
+        min-height: 0;
+        padding: 12px;
+      }
+      .empty {
+        color: var(--muted);
+        padding: 16px;
+      }
+      .list-header, .event-row {
+        display: grid;
+        grid-template-columns: minmax(260px, 1fr) 80px 80px 90px 110px;
+        gap: 12px;
+        align-items: center;
+        padding: 10px 12px;
+      }
+      .list-header {
+        position: sticky;
+        top: 0;
+        z-index: 1;
+        background: Canvas;
+        border-bottom: 1px solid var(--border);
+        font-size: 12px;
+        color: var(--muted);
+        text-transform: uppercase;
+        letter-spacing: 0.03em;
+      }
+      .event-row {
+        border: 0;
+        border-bottom: 1px solid var(--border);
+        width: 100%;
+        text-align: left;
+        background: transparent;
+        color: inherit;
+        cursor: pointer;
+      }
+      .event-row:hover { background: var(--bg-soft); }
+      .event-row.selected { background: var(--bg-selected); }
+      .name-cell {
+        min-width: 0;
+      }
+      .endpoint {
+        font-size: 13px;
+        font-weight: 700;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+      .path {
+        font-size: 12px;
+        color: var(--muted);
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        margin-top: 3px;
+      }
+      .mono { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; }
+      .status.ok { color: #15803d; }
+      .status.error { color: #b91c1c; }
+      .detail-header {
+        margin-bottom: 12px;
+      }
+      .detail-title {
+        font-size: 20px;
+        font-weight: 700;
+        margin-bottom: 4px;
+        word-break: break-word;
+      }
+      .subtle {
+        color: var(--muted);
+        font-size: 12px;
+      }
+      .detail-grid {
+        display: grid;
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+        gap: 10px;
+        margin-bottom: 16px;
+      }
+      .card {
+        border: 1px solid var(--border);
+        border-radius: 8px;
+        padding: 10px;
+        background: var(--bg-soft);
+      }
+      .card-label {
+        font-size: 11px;
+        text-transform: uppercase;
+        letter-spacing: 0.04em;
+        color: var(--muted);
+        margin-bottom: 6px;
+      }
+      .card-value {
+        font-size: 13px;
+        word-break: break-word;
+      }
+      .section + .section { margin-top: 14px; }
+      .section-title {
+        font-size: 13px;
+        font-weight: 700;
+        margin-bottom: 8px;
+      }
+      pre {
+        margin: 0;
+        padding: 12px;
+        border: 1px solid var(--border);
+        border-radius: 8px;
+        background: var(--code-bg);
+        white-space: pre-wrap;
+        word-break: break-word;
+        overflow: auto;
+        max-height: 260px;
+      }
+      .json-viewer {
+        border: 1px solid var(--border);
+        border-radius: 8px;
+        background: var(--code-bg);
+        padding: 10px 12px;
+        max-height: 360px;
+        overflow: auto;
+        font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+        font-size: 13px;
+        line-height: 1.5;
+      }
+      .json-row {
+        padding-left: 16px;
+        position: relative;
+      }
+      .json-row.root {
+        padding-left: 0;
+      }
+      .json-toggle {
+        cursor: pointer;
+        user-select: none;
+        color: var(--muted);
+        margin-right: 6px;
+        display: inline-block;
+        width: 12px;
+      }
+      .json-key {
+        color: #9a3412;
+        font-weight: 600;
+      }
+      .json-string {
+        color: #047857;
+      }
+      .json-number {
+        color: #1d4ed8;
+      }
+      .json-boolean {
+        color: #7c3aed;
+      }
+      .json-null {
+        color: var(--muted);
+        font-style: italic;
+      }
+      .json-summary {
+        color: var(--muted);
+      }
+      .hidden { display: none !important; }
+    </style>
+  </head>
+  <body>
+    <div class="app">
+      <div class="toolbar">
+        <button id="refresh">Refresh</button>
+        <button id="clear">Clear</button>
+        <span id="meta" class="meta">Loading…</span>
+
+        <div class="toggles">
+          <label class="toggle"><input id="toggle-url" type="checkbox"> URL</label>
+          <label class="toggle"><input id="toggle-request" type="checkbox"> Request body</label>
+          <label class="toggle"><input id="toggle-response" type="checkbox"> Response body</label>
+          <label class="toggle"><input id="toggle-raw" type="checkbox"> Raw event</label>
+        </div>
+      </div>
+
+      <div class="layout">
+        <aside class="sidebar">
+          <div class="list-header">
+            <div>Name</div>
+            <div>Method</div>
+            <div>Status</div>
+            <div>Time</div>
+            <div>When</div>
+          </div>
+          <div id="list"></div>
+          <div id="list-empty" class="empty hidden">No remote events yet.</div>
+        </aside>
+
+        <main class="details">
+          <div id="details-empty" class="empty">Select a remote call to inspect it.</div>
+          <div id="details" class="hidden">
+            <div class="detail-header">
+              <div id="detail-title" class="detail-title"></div>
+              <div id="detail-subtitle" class="subtle"></div>
+            </div>
+
+            <div class="detail-grid">
+              <div class="card"><div class="card-label">Method</div><div id="detail-method" class="card-value"></div></div>
+              <div class="card"><div class="card-label">Status</div><div id="detail-status" class="card-value"></div></div>
+              <div class="card"><div class="card-label">Duration</div><div id="detail-duration" class="card-value"></div></div>
+              <div class="card"><div class="card-label">Timestamp</div><div id="detail-ts" class="card-value"></div></div>
+            </div>
+
+            <div class="section" id="section-url">
+              <div class="section-title">URL</div>
+              <pre id="detail-url"></pre>
+            </div>
+
+            <div class="section">
+              <div class="section-title">Parsed remote payload</div>
+              <div id="detail-payload" class="json-viewer"></div>
+            </div>
+
+            <div class="section hidden" id="section-request">
+              <div class="section-title">Remote request</div>
+              <div id="detail-request" class="json-viewer"></div>
+            </div>
+
+            <div class="section hidden" id="section-response">
+              <div class="section-title">Remote result</div>
+              <div id="detail-response" class="json-viewer"></div>
+            </div>
+
+            <div class="section hidden" id="section-raw">
+              <div class="section-title">Raw event</div>
+              <pre id="detail-raw"></pre>
+            </div>
+          </div>
+        </main>
+      </div>
+    </div>
+    <script src="devtools-panel.js"></script>
+  </body>
+</html>

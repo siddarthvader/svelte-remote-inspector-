@@ -8,6 +8,7 @@
   "background": {
     "service_worker": "service_worker.js"
   },
+  "devtools_page": "devtools.html",
   "action": {
     "default_popup": "popup.html",
     "default_title": "Remote Function Inspector"

@@ -17,16 +17,18 @@ If your app calls remote functions from browser code and those requests become e
 1. Open `chrome://extensions`.
 2. Enable **Developer mode**.
 3. Click **Load unpacked** and select the `extension/` folder.
-4. Open your app tab.
-5. Use the extension popup to review logs.
+4. Open your app tab and refresh it after loading the extension.
+5. Open DevTools and use the **Remote Inspector** panel.
+6. The popup can still show raw stored logs, but the DevTools panel is the main UI.
 
 ## How it works
 
 - `content.js` injects `page-hook.js` into the page's JS world.
-- `page-hook.js` monkey-patches `fetch` and `XMLHttpRequest`.
-- Captured events are sent via `window.postMessage` to the content script.
-- The content script forwards logs to `service_worker.js`.
-- The popup reads and clears stored logs.
+- `page-hook.js` hooks browser requests and only captures `/_app/remote/` calls.
+- `service_worker.js` stores captured events.
+- `devtools.html` / `devtools-panel.html` add a **Remote Inspector** DevTools panel.
+- The DevTools panel also listens to DevTools network events for `/_app/remote/` requests.
+- Payload/result parsing is aligned with SvelteKit remote function encoding from `../kit/packages/kit/src/runtime/shared.js` and server response handling from `../kit/packages/kit/src/runtime/server/remote.js`.
 
 ## Next enhancements
 

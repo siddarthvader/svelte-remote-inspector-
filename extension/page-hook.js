@@ -1,5 +1,6 @@
 (() => {
   const MAX_TEXT = 5000;
+  const REMOTE_PATH = '/_app/remote/';
 
   function asText(value) {
     if (value == null) return null;
@@ -9,6 +10,10 @@
     } catch {
       return String(value).slice(0, MAX_TEXT);
     }
+  }
+
+  function shouldCapture(url) {
+    return typeof url === 'string' && url.includes(REMOTE_PATH);
   }
 
   function emit(payload) {
@@ -30,6 +35,8 @@
     const start = performance.now();
     try {
       const response = await originalFetch.apply(this, arguments);
+      if (!shouldCapture(url)) return response;
+
       let responseBody = null;
       try {
         const cloned = response.clone();
@@ -51,15 +58,17 @@
 
       return response;
     } catch (error) {
-      emit({
-        kind: 'fetch',
-        ok: false,
-        method,
-        url,
-        requestBody: asText(requestBody),
-        error: asText(error?.message || error),
-        durationMs: Math.round(performance.now() - start)
-      });
+      if (shouldCapture(url)) {
+        emit({
+          kind: 'fetch',
+          ok: false,
+          method,
+          url,
+          requestBody: asText(requestBody),
+          error: asText(error?.message || error),
+          durationMs: Math.round(performance.now() - start)
+        });
+      }
       throw error;
     }
   };
@@ -78,18 +87,20 @@
     const method = this.__riMethod || 'GET';
     const url = this.__riUrl;
 
-    this.addEventListener('loadend', () => {
-      emit({
-        kind: 'xhr',
-        ok: this.status >= 200 && this.status < 300,
-        status: this.status,
-        method,
-        url,
-        requestBody: asText(body),
-        responseBody: asText(this.responseText),
-        durationMs: Math.round(performance.now() - start)
+    if (shouldCapture(url)) {
+      this.addEventListener('loadend', () => {
+        emit({
+          kind: 'xhr',
+          ok: this.status >= 200 && this.status < 300,
+          status: this.status,
+          method,
+          url,
+          requestBody: asText(body),
+          responseBody: asText(this.responseText),
+          durationMs: Math.round(performance.now() - start)
+        });
       });
-    });
+    }
 
     return originalSend.apply(this, arguments);
   };

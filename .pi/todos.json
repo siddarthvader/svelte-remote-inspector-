@@ -1,0 +1,41 @@
+{
+  "todos": [
+    {
+      "id": "todo-1",
+      "text": "Add Chrome DevTools panel entry to manifest",
+      "completed": true,
+      "priority": "medium",
+      "created": 1776174178427,
+      "tags": [
+        "extension",
+        "devtools"
+      ],
+      "completed_at": 1776174210355
+    },
+    {
+      "id": "todo-2",
+      "text": "Create devtools bootstrap and panel UI files",
+      "completed": true,
+      "priority": "high",
+      "created": 1776174178428,
+      "tags": [
+        "extension",
+        "devtools"
+      ],
+      "completed_at": 1776174210355
+    },
+    {
+      "id": "todo-3",
+      "text": "Hook panel UI to existing log storage and refresh/clear actions",
+      "completed": true,
+      "priority": "high",
+      "created": 1776174178428,
+      "tags": [
+        "extension",
+        "devtools"
+      ],
+      "completed_at": 1776174210356
+    }
+  ],
+  "nextId": 4
+}
